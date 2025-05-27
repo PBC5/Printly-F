@@ -21,12 +21,6 @@
   <header class="bg-[var(--primary-color)] text-[var(--background-light)] p-4 shadow-lg">
     <div class="container mx-auto flex justify-between items-center">
       <h1 class="text-3xl font-extrabold tracking-wide">Printly</h1>
-      <nav>
-        <ul class="flex space-x-6 text-lg">
-          <li><a href="#feed" class="hover:text-[var(--accent-color)] transition-colors">Inicio</a></li>
-          <li><a href="#contacto" class="hover:text-[var(--accent-color)] transition-colors">Contacto</a></li>
-        </ul>
-      </nav>
     </div>
   </header>
 
@@ -60,6 +54,11 @@
     </section>
   </main>
 
+  <div class="w-full flex justify-center my-8">
+    <button id="exportBtn" class="btn-primary px-6 py-2 rounded text-white bg-blue-600 hover:bg-blue-700">
+      Exportar posts
+    </button>
+  </div>
   <footer class="bg-[var(--primary-color)] text-[var(--background-light)] p-4 text-center">
     &copy; 2025 Printly. Todos los derechos reservados.
   </footer>
@@ -146,6 +145,7 @@ function renderPost({id, usuario, titulo, modelo3d, ext}, idx) {
   setTimeout(() => {
     cargarModelo3D(viewerId, modelo3d, ext);
   }, 100);
+  // Botón eliminar
   post.querySelector('.borrar-post').onclick = function() {
     deletePost(id).then(cargarPostsGuardados);
   };
@@ -247,6 +247,50 @@ document.getElementById('postForm').addEventListener('submit', function(e) {
 
     // Cargar posts guardados al iniciar
     window.addEventListener('DOMContentLoaded', cargarPostsGuardados);
+
+    // Guardar el fileHandle después de seleccionarlo
+async function seleccionarArchivoSQL() {
+  const [fileHandle] = await window.showOpenFilePicker({
+    types: [{
+      description: 'SQL Files',
+      accept: {'text/sql': ['.sql']}
+    }]
+  });
+  // Guardar el handle en localStorage (requiere serialización especial)
+  window.sqlFileHandle = fileHandle;
+  // Puedes usar window.sqlFileHandle en la exportación
+}
+
+// Usar el fileHandle guardado (si existe y el usuario no ha recargado la página)
+document.getElementById('exportBtn').onclick = async function exportarPostsSQL() {
+  const posts = await getAllPosts();
+  let sql = '';
+  posts.forEach(post => {
+    const usuario = (post.usuario || '').replace(/'/g, "''");
+    const titulo = (post.titulo || '').replace(/'/g, "''");
+    const ext = (post.ext || '').replace(/'/g, "''");
+    sql += `INSERT INTO posts (usuario, titulo, ext) VALUES ('${usuario}', '${titulo}', '${ext}');\n`;
+  });
+
+  let fileHandle = window.sqlFileHandle;
+  if (!fileHandle) {
+    // Si no hay handle guardado, pedirlo al usuario
+    [fileHandle] = await window.showOpenFilePicker({
+      types: [{
+        description: 'SQL Files',
+        accept: {'text/sql': ['.sql']}
+      }]
+    });
+    window.sqlFileHandle = fileHandle;
+  }
+
+  const writable = await fileHandle.createWritable({keepExistingData: true});
+  const file = await fileHandle.getFile();
+  const existingContent = await file.text();
+  await writable.write(existingContent + '\n' + sql);
+  await writable.close();
+  alert('¡Posts agregados a tu archivo SQL!');
+};
   </script>
 </body>
 </html>
