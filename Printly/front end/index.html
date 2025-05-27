@@ -20,41 +20,46 @@
 <body class="bg-[var(--background-light)] text-[var(--text-primary)]">
   <header class="bg-[var(--primary-color)] text-[var(--background-light)] p-4 shadow-lg">
     <div class="container mx-auto flex justify-between items-center">
-      <h1 class="text-3xl font-extrabold tracking-wide">Printly</h1>
-      <nav>
-        <ul class="flex space-x-6 text-lg">
-          <li><a href="#feed" class="hover:text-[var(--accent-color)] transition-colors">Inicio</a></li>
-          <li><a href="#contacto" class="hover:text-[var(--accent-color)] transition-colors">Contacto</a></li>
-        </ul>
-      </nav>
-      <div class="space-x-4">
-        <a href="login.html" class="btn-secondary hover:bg-[var(--accent-color)]">Login</a>
-        <a href="register.html" class="btn-primary hover:opacity-90">Registro</a>
-      </div>
+        <h1 class="text-3xl font-extrabold tracking-wide">Printly</h1>
+        <nav>
+            <ul class="flex space-x-6 text-lg">
+                <li><a href="#feed" class="hover:text-[var(--accent-color)] transition-colors">Inicio</a></li>
+                <li><a href="#contacto" class="hover:text-[var(--accent-color)] transition-colors">Contacto</a></li>
+            </ul>
+        </nav>
+        <div id="header-auth" class="space-x-4">
+            <!-- Este contenido se actualizará dinámicamente según el estado de autenticación -->
+        </div>
     </div>
   </header>
 
   <main class="container mx-auto p-6">
     <!-- Sección de creación de post -->
-    <section id="crear-post" class="mb-12">
+    <section id="crear-post" class="mb-12 hidden"> <!-- Añadido hidden por defecto -->
       <h2 class="text-3xl font-extrabold mb-6 text-center text-[var(--primary-color)]">Publicar Modelo 3D</h2>
       <form id="postForm" class="bg-white rounded-lg shadow-md p-6 max-w-2xl mx-auto space-y-4" enctype="multipart/form-data">
         <div>
-          <label for="usuario" class="block font-semibold mb-1">Usuario</label>
-          <input id="usuario" type="text" required class="w-full p-2 border rounded" placeholder="Tu nombre de usuario">
+            <label for="titulo" class="block font-semibold mb-1">Título o Explicación del Modelo</label>
+            <input id="titulo" type="text" required class="w-full p-2 border rounded" placeholder="Título o explicación breve">
         </div>
         <div>
-          <label for="titulo" class="block font-semibold mb-1">Título o Explicación del Modelo</label>
-          <input id="titulo" type="text" required class="w-full p-2 border rounded" placeholder="Título o explicación breve">
-        </div>
-        <div>
-          <label for="modelo3d" class="block font-semibold mb-1">Adjunta tu Modelo 3D (.glb, .gltf o .obj)</label>
-          <input id="modelo3d" type="file" accept=".glb,.gltf,.obj" required class="w-full p-2 border rounded bg-white">
+            <label for="modelo3d" class="block font-semibold mb-1">Adjunta tu Modelo 3D (.glb, .gltf o .obj)</label>
+            <input id="modelo3d" type="file" accept=".glb,.gltf,.obj" required class="w-full p-2 border rounded bg-white">
         </div>
         <button type="submit" class="btn-primary w-full flex items-center justify-center gap-2">
-          <i class="fas fa-paper-plane"></i> Publicar
+            <i class="fas fa-paper-plane"></i> Publicar
         </button>
-      </form>
+    </form>
+    </section>
+
+    <!-- Añade esta sección para usuarios no autenticados -->
+    <section id="login-required" class="mb-12 text-center">
+        <h2 class="text-2xl font-bold mb-4">Inicia sesión para publicar</h2>
+        <p class="mb-4">Necesitas una cuenta para compartir tus modelos 3D</p>
+        <div class="space-x-4">
+            <a href="login.html" class="btn-primary inline-block">Iniciar Sesión</a>
+            <a href="register.html" class="btn-secondary inline-block">Registrarse</a>
+        </div>
     </section>
 
     <!-- Feed de publicaciones -->

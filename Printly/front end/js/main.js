@@ -1,3 +1,5 @@
+import { auth, db } from './firebase-config.js';
+
 const API_URL = 'http://localhost:8080/api';
 
 // Agregar estas funciones al inicio del archivo
@@ -41,6 +43,40 @@ async function registrarUsuario(userData) {
         throw error;
     }
 }
+
+// Manejo del estado de autenticación
+auth.onAuthStateChanged(function(user) {
+    const crearPost = document.getElementById('crear-post');
+    const loginRequired = document.getElementById('login-required');
+    const headerAuth = document.getElementById('header-auth');
+
+    if (user) {
+        // Usuario autenticado
+        crearPost.classList.remove('hidden');
+        loginRequired.classList.add('hidden');
+        headerAuth.innerHTML = `
+            <span class="mr-2">Hola, ${user.displayName || user.email}</span>
+            <button onclick="cerrarSesion()" class="btn-secondary">Cerrar Sesión</button>
+        `;
+    } else {
+        // Usuario no autenticado
+        crearPost.classList.add('hidden');
+        loginRequired.classList.remove('hidden');
+        headerAuth.innerHTML = `
+            <a href="login.html" class="btn-secondary">Login</a>
+            <a href="register.html" class="btn-primary">Registro</a>
+        `;
+    }
+});
+
+// Función para cerrar sesión
+window.cerrarSesion = function() {
+    auth.signOut().then(() => {
+        window.location.href = 'index.html';
+    }).catch((error) => {
+        console.error('Error al cerrar sesión:', error);
+    });
+};
 
 document.addEventListener('DOMContentLoaded', function() {
     // Configuración inicial
@@ -439,3 +475,40 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeModelViewers();
     initializeGalleryViewers();
   });
+  
+  // Modifica el evento submit del formulario
+  document.getElementById('postForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    if (!auth.currentUser) {
+        alert('Debes iniciar sesión para publicar');
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', document.getElementById('modelo3d').files[0]);
+    formData.append('titulo', document.getElementById('titulo').value);
+    formData.append('userId', auth.currentUser.uid);
+
+    try {
+        // Subir archivo y datos a Firebase
+        const fileRef = storage.ref(`modelos/${Date.now()}_${file.name}`);
+        await fileRef.put(file);
+        const fileUrl = await fileRef.getDownloadURL();
+
+        // Guardar datos en Firestore
+        await db.collection('modelos').add({
+            titulo: document.getElementById('titulo').value,
+            modeloUrl: fileUrl,
+            userId: auth.currentUser.uid,
+            userName: auth.currentUser.displayName || auth.currentUser.email,
+            fecha: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        alert('Modelo subido correctamente');
+        location.reload();
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error al subir el modelo');
+    }
+});
