@@ -1,3 +1,46 @@
+const API_URL = 'http://localhost:8080/api';
+
+// Agregar estas funciones al inicio del archivo
+async function loginUsuario(credentials) {
+    try {
+        const response = await fetch(`${API_URL}/usuarios/login`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(credentials)
+        });
+        const data = await response.json();
+        if (!response.ok) {
+            throw new Error(data.error || 'Error en el login');
+        }
+        return data;
+    } catch (error) {
+        console.error('Error:', error);
+        throw error;
+    }
+}
+
+async function registrarUsuario(userData) {
+    try {
+        const response = await fetch(`${API_URL}/usuarios/registro`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(userData)
+        });
+        const data = await response.json();
+        if (!response.ok) {
+            throw new Error(data.error || 'Error en el registro');
+        }
+        return data;
+    } catch (error) {
+        console.error('Error:', error);
+        throw error;
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     // Configuración inicial
     const container = document.getElementById('threeContainer');

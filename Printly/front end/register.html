@@ -119,35 +119,38 @@
     </footer>
 
     <script>
-        document.getElementById('registerForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const nombre = document.getElementById('nombre').value;
-            const apellidos = document.getElementById('apellidos').value;
-            const mensajeDiv = document.getElementById('registerMensaje');
-            const mensajeTexto = document.getElementById('mensajeTexto');
-            
-            mensajeDiv.classList.remove('hidden');
-            mensajeTexto.innerText = `¡Bienvenido/a ${nombre} ${apellidos}! Tu cuenta ha sido creada exitosamente.`;
+document.getElementById('registerForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const userData = {
+        nombre: document.getElementById('nombre').value,
+        email: document.getElementById('email').value,
+        password: document.getElementById('password').value
+    };
+
+    try {
+        const response = await registrarUsuario(userData);
+        const mensajeDiv = document.getElementById('registerMensaje');
+        const mensajeTexto = document.getElementById('mensajeTexto');
+        
+        mensajeDiv.classList.remove('hidden');
+        
+        if (response.id) {
+            mensajeTexto.innerText = `¡Bienvenido/a ${userData.nombre}! Tu cuenta ha sido creada exitosamente.`;
             
             setTimeout(() => {
                 window.location.href = 'login.html';
             }, 3000);
-        });
-
-        document.getElementById('togglePassword').addEventListener('click', function() {
-            const passwordInput = document.getElementById('password');
-            const icon = this.querySelector('i');
-            
-            if (passwordInput.type === 'password') {
-                passwordInput.type = 'text';
-                icon.classList.remove('fa-eye');
-                icon.classList.add('fa-eye-slash');
-            } else {
-                passwordInput.type = 'password';
-                icon.classList.remove('fa-eye-slash');
-                icon.classList.add('fa-eye');
-            }
-        });
+        } else {
+            mensajeTexto.innerText = response.error || 'Error al crear la cuenta';
+        }
+    } catch (error) {
+        const mensajeDiv = document.getElementById('registerMensaje');
+        const mensajeTexto = document.getElementById('mensajeTexto');
+        mensajeDiv.classList.remove('hidden');
+        mensajeTexto.innerText = error.message;
+    }
+});
     </script>
 </body>
 </html>

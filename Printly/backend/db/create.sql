@@ -1,9 +1,9 @@
 CREATE TABLE USUARIOS (
-  usuario_id NUMBER PRIMARY KEY,
-  nombre VARCHAR2(100),
-  email VARCHAR2(100) UNIQUE,
-  password VARCHAR2(100),
-  fecha_registro DATE
+    usuario_id NUMBER PRIMARY KEY,
+    nombre VARCHAR2(100),
+    email VARCHAR2(100) UNIQUE,
+    password VARCHAR2(100),
+    fecha_registro DATE
 );
 
 CREATE TABLE PUBLICACIONES (

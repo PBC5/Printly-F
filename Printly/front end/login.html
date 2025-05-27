@@ -113,34 +113,41 @@
   </footer>
 
   <script>
-    document.getElementById('loginForm').addEventListener('submit', function(e) {
-      e.preventDefault();
-      const email = document.getElementById('loginEmail').value;
-      const mensajeDiv = document.getElementById('loginMensaje');
-      const mensajeTexto = document.getElementById('mensajeTexto');
-      
-      mensajeDiv.classList.remove('hidden');
-      mensajeTexto.innerText = '¡Bienvenido ' + email + '!';
-      
-      setTimeout(() => {
-        window.location.href = 'index.html';
-      }, 2000);
-    });
+document.getElementById('loginForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const credentials = {
+        email: document.getElementById('loginEmail').value,
+        password: document.getElementById('loginPassword').value
+    };
 
-    document.getElementById('togglePassword').addEventListener('click', function() {
-      const passwordInput = document.getElementById('loginPassword');
-      const icon = this.querySelector('i');
-      
-      if (passwordInput.type === 'password') {
-        passwordInput.type = 'text';
-        icon.classList.remove('fa-eye');
-        icon.classList.add('fa-eye-slash');
-      } else {
-        passwordInput.type = 'password';
-        icon.classList.remove('fa-eye-slash');
-        icon.classList.add('fa-eye');
-      }
-    });
-  </script>
+    try {
+        const response = await loginUsuario(credentials);
+        const mensajeDiv = document.getElementById('loginMensaje');
+        const mensajeTexto = document.getElementById('mensajeTexto');
+        
+        mensajeDiv.classList.remove('hidden');
+        
+        if (response.id) {
+            // Guardar datos del usuario en localStorage
+            localStorage.setItem('userId', response.id);
+            localStorage.setItem('userName', response.nombre);
+            
+            mensajeTexto.innerText = `¡Bienvenido ${response.nombre}!`;
+            
+            setTimeout(() => {
+                window.location.href = 'index.html';
+            }, 2000);
+        } else {
+            mensajeTexto.innerText = response.error || 'Error al iniciar sesión';
+        }
+    } catch (error) {
+        const mensajeDiv = document.getElementById('loginMensaje');
+        const mensajeTexto = document.getElementById('mensajeTexto');
+        mensajeDiv.classList.remove('hidden');
+        mensajeTexto.innerText = error.message;
+    }
+});
+</script>
 </body>
 </html>
