@@ -1,0 +1,9 @@
+CREATE TABLE usuarios (
+    id NUMBER PRIMARY KEY,
+    nombre VARCHAR2(100),
+    email VARCHAR2(100) UNIQUE,
+    password VARCHAR2(100),
+    fecha_registro DATE DEFAULT SYSDATE
+);
+
+CREATE SEQUENCE usuarios_seq START WITH 1 INCREMENT BY 1;

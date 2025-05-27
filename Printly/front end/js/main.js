@@ -23,18 +23,19 @@ async function loginUsuario(credentials) {
 
 async function registrarUsuario(userData) {
     try {
-        const response = await fetch(`${API_URL}/usuarios/registro`, {
+        const response = await fetch('http://localhost:8080/api/usuarios', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify(userData)
         });
-        const data = await response.json();
+        
         if (!response.ok) {
-            throw new Error(data.error || 'Error en el registro');
+            throw new Error('Error al registrar usuario');
         }
-        return data;
+        
+        return await response.json();
     } catch (error) {
         console.error('Error:', error);
         throw error;
