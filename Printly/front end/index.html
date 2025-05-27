@@ -27,10 +27,7 @@
           <li><a href="#contacto" class="hover:text-[var(--accent-color)] transition-colors">Contacto</a></li>
         </ul>
       </nav>
-      <div class="space-x-4">
-        <a href="login.html" class="btn-secondary hover:bg-[var(--accent-color)]">Login</a>
-        <a href="register.html" class="btn-primary hover:opacity-90">Registro</a>
-      </div>
+      <!-- Eliminado login y registro -->
     </div>
   </header>
 
@@ -40,12 +37,12 @@
       <h2 class="text-3xl font-extrabold mb-6 text-center text-[var(--primary-color)]">Publicar Modelo 3D</h2>
       <form id="postForm" class="bg-white rounded-lg shadow-md p-6 max-w-2xl mx-auto space-y-4" enctype="multipart/form-data">
         <div>
-          <label for="usuario" class="block font-semibold mb-1">Usuario</label>
-          <input id="usuario" type="text" required class="w-full p-2 border rounded" placeholder="Tu nombre de usuario">
+          <label for="usuario" class="block font-semibold mb-1">Nombre</label>
+          <input id="usuario" type="text" required class="w-full p-2 border rounded" placeholder="Tu nombre">
         </div>
         <div>
-          <label for="titulo" class="block font-semibold mb-1">Título o Explicación del Modelo</label>
-          <input id="titulo" type="text" required class="w-full p-2 border rounded" placeholder="Título o explicación breve">
+          <label for="titulo" class="block font-semibold mb-1">Descripción del Modelo</label>
+          <input id="titulo" type="text" required class="w-full p-2 border rounded" placeholder="Descripción breve">
         </div>
         <div>
           <label for="modelo3d" class="block font-semibold mb-1">Adjunta tu Modelo 3D (.glb, .gltf o .obj)</label>
@@ -68,41 +65,42 @@
     &copy; 2025 Printly. Todos los derechos reservados.
   </footer>
 
+  <!-- Agrega los scripts de Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
   <script>
-    // Modelos de ejemplo para mostrar al cargar la página
-    const modelosEjemplo = [
-      {
-        usuario: "Marina López",
-        titulo: "Flamenco 3D para proyectos educativos",
-        modelo3d: "https://threejs.org/examples/models/gltf/Flamingo.glb",
-        isFile: false,
-        ext: "glb"
-      },
-      {
-        usuario: "Carlos Ruiz",
-        titulo: "Casco de astronauta dañado para sci-fi",
-        modelo3d: "https://threejs.org/examples/models/gltf/DamagedHelmet/glTF/DamagedHelmet.gltf",
-        isFile: false,
-        ext: "gltf"
-      },
-      {
-        usuario: "Lucía Fernández",
-        titulo: "Robot articulado para automatización industrial",
-        modelo3d: "https://threejs.org/examples/models/gltf/RobotExpressive/RobotExpressive.glb",
-        isFile: false,
-        ext: "glb"
-      },
-      {
-        usuario: "Ana Torres",
-        titulo: "Casa moderna sostenible para arquitectura",
-        modelo3d: "https://threejs.org/examples/models/gltf/House/House.gltf",
-        isFile: false,
-        ext: "gltf"
-      }
-    ];
+    // Configuración de Firebase
+    const firebaseConfig = {
+      apiKey: "TU_API_KEY",
+      authDomain: "TU_AUTH_DOMAIN",
+      projectId: "TU_PROJECT_ID",
+      storageBucket: "TU_STORAGE_BUCKET",
+      messagingSenderId: "TU_MESSAGING_SENDER_ID",
+      appId: "TU_APP_ID"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const storage = firebase.storage();
+    const db = firebase.firestore();
+
+    // Cargar publicaciones desde localStorage
+    function cargarPostsGuardados() {
+      const posts = JSON.parse(localStorage.getItem('printly_posts') || '[]');
+      const postsContainer = document.getElementById('posts');
+      postsContainer.innerHTML = '';
+      posts.forEach((post, idx) => {
+        postsContainer.appendChild(renderPost(post, idx));
+      });
+    }
+
+    // Guardar publicaciones en localStorage
+    function guardarPosts(posts) {
+      localStorage.setItem('printly_posts', JSON.stringify(posts));
+    }
 
     // Renderizar un post dinámicamente
-    function renderPost({usuario, titulo, modelo3d, isFile, ext}, idx) {
+    function renderPost({usuario, titulo, modelo3d, ext}, idx) {
       const viewerId = `viewer-${Date.now()}-${idx}`;
       const post = document.createElement('div');
       post.className = "post-card flex flex-col gap-2";
@@ -116,17 +114,9 @@
         </div>
       `;
       setTimeout(() => {
-        cargarModelo3D(viewerId, modelo3d, isFile, ext);
+        cargarModelo3D(viewerId, modelo3d, ext);
       }, 100);
       return post;
-    }
-
-    // Inicializar modelos de ejemplo
-    function cargarEjemplo() {
-      const posts = document.getElementById('posts');
-      modelosEjemplo.forEach((modelo, idx) => {
-        posts.appendChild(renderPost(modelo, idx));
-      });
     }
 
     // Manejar el formulario de publicación
@@ -137,22 +127,29 @@
       const fileInput = document.getElementById('modelo3d');
       const file = fileInput.files[0];
       if (usuario && titulo && file) {
-        const posts = document.getElementById('posts');
-        const fileURL = URL.createObjectURL(file);
         const ext = file.name.split('.').pop().toLowerCase();
-        posts.prepend(renderPost({
-          usuario,
-          titulo,
-          modelo3d: fileURL,
-          isFile: true,
-          ext
-        }, Math.floor(Math.random()*100000)));
-        this.reset();
+        const storageRef = storage.ref('modelos/' + Date.now() + '_' + file.name);
+        storageRef.put(file).then(snapshot => {
+          return snapshot.ref.getDownloadURL();
+        }).then(url => {
+          return db.collection('posts').add({
+            usuario,
+            titulo,
+            modelo3d: url,
+            ext,
+            fecha: firebase.firestore.FieldValue.serverTimestamp()
+          });
+        }).then(() => {
+          cargarPostsFirebase();
+          document.getElementById('postForm').reset();
+        }).catch(err => {
+          alert('Error al subir el modelo: ' + err.message);
+        });
       }
     });
 
     // Función para cargar un modelo 3D en un contenedor (.glb, .gltf, .obj)
-    function cargarModelo3D(containerId, modelUrl, isFile, ext) {
+    function cargarModelo3D(containerId, modelUrl, ext) {
       const container = document.getElementById(containerId);
       if (!container) return;
       container.innerHTML = "";
@@ -221,7 +218,19 @@
       });
     }
 
-    window.addEventListener('DOMContentLoaded', cargarEjemplo);
+    // Cargar publicaciones desde Firebase
+    function cargarPostsFirebase() {
+      const postsContainer = document.getElementById('posts');
+      postsContainer.innerHTML = '';
+      db.collection('posts').orderBy('fecha', 'desc').get().then(snapshot => {
+        snapshot.forEach(doc => {
+          postsContainer.appendChild(renderPost(doc.data(), doc.id));
+        });
+      });
+    }
+
+    // Cargar posts guardados al iniciar
+    window.addEventListener('DOMContentLoaded', cargarPostsFirebase);
   </script>
 </body>
 </html>
