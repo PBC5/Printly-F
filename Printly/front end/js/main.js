@@ -395,3 +395,23 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeModelViewers();
     initializeGalleryViewers();
   });
+  
+  // Puedes poner esto en tu index.html dentro de un <script> o en main.js
+function exportarPosts() {
+  getAllPosts().then(posts => {
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(posts));
+    const dlAnchor = document.createElement('a');
+    dlAnchor.setAttribute("href", dataStr);
+    dlAnchor.setAttribute("download", "posts.json");
+    document.body.appendChild(dlAnchor);
+    dlAnchor.click();
+    dlAnchor.remove();
+  });
+}
+
+// Ejemplo: botón para exportar
+const exportBtn = document.createElement('button');
+exportBtn.textContent = "Exportar posts";
+exportBtn.className = "btn-primary m-4";
+exportBtn.onclick = exportarPosts;
+document.body.appendChild(exportBtn);

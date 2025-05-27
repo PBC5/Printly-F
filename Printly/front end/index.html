@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Printly - Red Social de Modelaje 3D y Reciclaje Sostenible</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
@@ -27,7 +27,6 @@
           <li><a href="#contacto" class="hover:text-[var(--accent-color)] transition-colors">Contacto</a></li>
         </ul>
       </nav>
-      <!-- Eliminado login y registro -->
     </div>
   </header>
 
@@ -65,88 +64,116 @@
     &copy; 2025 Printly. Todos los derechos reservados.
   </footer>
 
-  <!-- Agrega los scripts de Firebase -->
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-
   <script>
-    // Configuración de Firebase
-    const firebaseConfig = {
-      apiKey: "TU_API_KEY",
-      authDomain: "TU_AUTH_DOMAIN",
-      projectId: "TU_PROJECT_ID",
-      storageBucket: "TU_STORAGE_BUCKET",
-      messagingSenderId: "TU_MESSAGING_SENDER_ID",
-      appId: "TU_APP_ID"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const storage = firebase.storage();
-    const db = firebase.firestore();
+    // --- IndexedDB helpers ---
+const DB_NAME = 'printlyDB';
+const DB_VERSION = 1;
+const STORE_NAME = 'posts';
 
-    // Cargar publicaciones desde localStorage
-    function cargarPostsGuardados() {
-      const posts = JSON.parse(localStorage.getItem('printly_posts') || '[]');
-      const postsContainer = document.getElementById('posts');
-      postsContainer.innerHTML = '';
-      posts.forEach((post, idx) => {
-        postsContainer.appendChild(renderPost(post, idx));
-      });
-    }
-
-    // Guardar publicaciones en localStorage
-    function guardarPosts(posts) {
-      localStorage.setItem('printly_posts', JSON.stringify(posts));
-    }
-
-    // Renderizar un post dinámicamente
-    function renderPost({usuario, titulo, modelo3d, ext}, idx) {
-      const viewerId = `viewer-${Date.now()}-${idx}`;
-      const post = document.createElement('div');
-      post.className = "post-card flex flex-col gap-2";
-      post.innerHTML = `
-        <div class="flex flex-col gap-1">
-          <span class="font-bold text-lg">${usuario}</span>
-          <span class="text-base text-[var(--text-secondary)]">${titulo}</span>
-        </div>
-        <div class="model-viewer bg-gray-800 rounded-lg h-[300px] mb-2 relative">
-          <div id="${viewerId}" class="w-full h-full"></div>
-        </div>
-      `;
-      setTimeout(() => {
-        cargarModelo3D(viewerId, modelo3d, ext);
-      }, 100);
-      return post;
-    }
-
-    // Manejar el formulario de publicación
-    document.getElementById('postForm').addEventListener('submit', function(e) {
-      e.preventDefault();
-      const usuario = document.getElementById('usuario').value.trim();
-      const titulo = document.getElementById('titulo').value.trim();
-      const fileInput = document.getElementById('modelo3d');
-      const file = fileInput.files[0];
-      if (usuario && titulo && file) {
-        const ext = file.name.split('.').pop().toLowerCase();
-        const storageRef = storage.ref('modelos/' + Date.now() + '_' + file.name);
-        storageRef.put(file).then(snapshot => {
-          return snapshot.ref.getDownloadURL();
-        }).then(url => {
-          return db.collection('posts').add({
-            usuario,
-            titulo,
-            modelo3d: url,
-            ext,
-            fecha: firebase.firestore.FieldValue.serverTimestamp()
-          });
-        }).then(() => {
-          cargarPostsFirebase();
-          document.getElementById('postForm').reset();
-        }).catch(err => {
-          alert('Error al subir el modelo: ' + err.message);
-        });
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, DB_VERSION);
+    request.onupgradeneeded = function(e) {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        db.createObjectStore(STORE_NAME, { keyPath: 'id', autoIncrement: true });
       }
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+function addPost(post) {
+  return openDB().then(db => {
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, 'readwrite');
+      tx.objectStore(STORE_NAME).add(post);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
     });
+  });
+}
+
+function getAllPosts() {
+  return openDB().then(db => {
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, 'readonly');
+      const store = tx.objectStore(STORE_NAME);
+      const req = store.getAll();
+      req.onsuccess = () => resolve(req.result.reverse());
+      req.onerror = () => reject(req.error);
+    });
+  });
+}
+
+function deletePost(id) {
+  return openDB().then(db => {
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, 'readwrite');
+      tx.objectStore(STORE_NAME).delete(id);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  });
+}
+
+// --- UI y lógica principal ---
+function cargarPostsGuardados() {
+  getAllPosts().then(posts => {
+    const postsContainer = document.getElementById('posts');
+    postsContainer.innerHTML = '';
+    posts.forEach((post, idx) => {
+      postsContainer.appendChild(renderPost(post, idx));
+    });
+  });
+}
+
+function renderPost({id, usuario, titulo, modelo3d, ext}, idx) {
+  const viewerId = `viewer-${Date.now()}-${idx}`;
+  const post = document.createElement('div');
+  post.className = "post-card flex flex-col gap-2";
+  post.innerHTML = `
+    <div class="flex flex-col gap-1">
+      <span class="font-bold text-lg">${usuario}</span>
+      <span class="text-base text-[var(--text-secondary)]">${titulo}</span>
+    </div>
+    <div class="model-viewer bg-gray-800 rounded-lg h-[300px] mb-2 relative">
+      <div id="${viewerId}" class="w-full h-full"></div>
+    </div>
+    <button class="borrar-post bg-red-500 text-white rounded px-2 py-1 w-24 self-end" data-id="${id}">Eliminar</button>
+  `;
+  setTimeout(() => {
+    cargarModelo3D(viewerId, modelo3d, ext);
+  }, 100);
+  post.querySelector('.borrar-post').onclick = function() {
+    deletePost(id).then(cargarPostsGuardados);
+  };
+  return post;
+}
+
+document.getElementById('postForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  const usuario = document.getElementById('usuario').value.trim();
+  const titulo = document.getElementById('titulo').value.trim();
+  const fileInput = document.getElementById('modelo3d');
+  const file = fileInput.files[0];
+  if (usuario && titulo && file) {
+    const ext = file.name.split('.').pop().toLowerCase();
+    const reader = new FileReader();
+    reader.onload = function(event) {
+      const fileData = event.target.result;
+      const post = { usuario, titulo, modelo3d: fileData, ext };
+      addPost(post)
+        .then(() => {
+          cargarPostsGuardados();
+          document.getElementById('postForm').reset();
+        })
+        .catch(() => alert('Error guardando el modelo.'));
+    };
+    reader.readAsDataURL(file);
+  }
+});
 
     // Función para cargar un modelo 3D en un contenedor (.glb, .gltf, .obj)
     function cargarModelo3D(containerId, modelUrl, ext) {
@@ -218,19 +245,8 @@
       });
     }
 
-    // Cargar publicaciones desde Firebase
-    function cargarPostsFirebase() {
-      const postsContainer = document.getElementById('posts');
-      postsContainer.innerHTML = '';
-      db.collection('posts').orderBy('fecha', 'desc').get().then(snapshot => {
-        snapshot.forEach(doc => {
-          postsContainer.appendChild(renderPost(doc.data(), doc.id));
-        });
-      });
-    }
-
     // Cargar posts guardados al iniciar
-    window.addEventListener('DOMContentLoaded', cargarPostsFirebase);
+    window.addEventListener('DOMContentLoaded', cargarPostsGuardados);
   </script>
 </body>
 </html>
