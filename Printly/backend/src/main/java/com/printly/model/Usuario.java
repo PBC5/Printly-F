@@ -9,7 +9,11 @@ public class Usuario {
     private String password;
     private Date fechaRegistro;
 
-    // Constructor
+    // Constructor vacío necesario para Spring
+    public Usuario() {
+    }
+
+    // Constructor existente
     public Usuario(int id, String nombre, String email, String password) {
         this.id = id;
         this.nombre = nombre;

@@ -7,8 +7,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class UsuarioDAO {
-    public void guardarUsuario(Usuario usuario) throws SQLException {
-        String sql = "INSERT INTO usuarios (id, nombre, email, password) VALUES (usuarios_seq.NEXTVAL, ?, ?, ?)";
+    public int guardarUsuario(Usuario usuario) throws SQLException {
+        String sql = "INSERT INTO usuarios (id, nombre, email, password, fecha_registro) " +
+                    "VALUES (usuarios_seq.NEXTVAL, ?, ?, ?, SYSDATE) " +
+                    "RETURNING id INTO ?";
         
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -16,8 +18,10 @@ public class UsuarioDAO {
             pstmt.setString(1, usuario.getNombre());
             pstmt.setString(2, usuario.getEmail());
             pstmt.setString(3, usuario.getPassword());
+            pstmt.registerOutParameter(4, java.sql.Types.INTEGER);
             
             pstmt.executeUpdate();
+            return pstmt.getInt(4);
         }
     }
 
