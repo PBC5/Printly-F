@@ -1,10 +1,12 @@
 CREATE TABLE USUARIOS (
     usuario_id NUMBER PRIMARY KEY,
     nombre VARCHAR2(100),
-    email VARCHAR2(100) UNIQUE,
+    email VARCHAR2(100),
     password VARCHAR2(100),
     fecha_registro DATE
 );
+
+ALTER TABLE USUARIOS ADD CONSTRAINT uk_usuarios_email UNIQUE (email);
 
 CREATE TABLE PUBLICACIONES (
   publicacion_id NUMBER PRIMARY KEY,

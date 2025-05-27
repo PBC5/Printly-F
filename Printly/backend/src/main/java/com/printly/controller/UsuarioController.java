@@ -1,5 +1,3 @@
-package com.printly.controller;
-
 import com.printly.model.Usuario;
 import com.printly.model.util.DBConnection;
 import org.springframework.web.bind.annotation.*;
@@ -14,16 +12,18 @@ public class UsuarioController {
 
     @PostMapping("/registro")
     public ResponseEntity<?> registrarUsuario(@RequestBody Usuario usuario) {
+        // Validar datos
         if (!validarDatos(usuario)) {
             return ResponseEntity.badRequest()
-                    .body("{\"error\": \"Datos inválidos\"}");
+                    .body("{\"error\": \"Los datos no son válidos. El nombre debe tener al menos 2 caracteres, " +
+                          "el email debe ser válido y la contraseña debe tener al menos 6 caracteres.\"}");
         }
 
         try (Connection conn = DBConnection.getConnection()) {
             // Verificar si el email ya existe
             if (emailExiste(conn, usuario.getEmail())) {
                 return ResponseEntity.status(HttpStatus.CONFLICT)
-                        .body("{\"error\": \"El email ya está registrado\"}");
+                        .body("{\"error\": \"El email " + usuario.getEmail() + " ya está registrado\"}");
             }
 
             // Insertar nuevo usuario
@@ -33,24 +33,28 @@ public class UsuarioController {
             try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
                 int id = getNextId(conn);
                 pstmt.setInt(1, id);
-                pstmt.setString(2, usuario.getNombre());
-                pstmt.setString(3, usuario.getEmail());
+                pstmt.setString(2, usuario.getNombre().trim());
+                pstmt.setString(3, usuario.getEmail().toLowerCase().trim());
                 pstmt.setString(4, usuario.getPassword());
                 
                 int filas = pstmt.executeUpdate();
                 if (filas > 0) {
                     return ResponseEntity.ok()
-                            .body("{\"id\": " + id + ", \"mensaje\": \"Usuario registrado correctamente\"}");
+                            .body(String.format(
+                                "{\"id\": %d, \"nombre\": \"%s\", \"mensaje\": \"Usuario registrado correctamente\"}",
+                                id,
+                                usuario.getNombre()
+                            ));
                 }
             }
         } catch (SQLException e) {
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("{\"error\": \"Error al registrar usuario\"}");
+                    .body("{\"error\": \"Error al registrar usuario: " + e.getMessage() + "\"}");
         }
         
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("{\"error\": \"Error desconocido\"}");
+                .body("{\"error\": \"No se pudo completar el registro\"}");
     }
 
     @PostMapping("/login")
@@ -90,18 +94,41 @@ public class UsuarioController {
     }
 
     private boolean validarDatos(Usuario usuario) {
-        return usuario != null &&
-               usuario.getNombre() != null && !usuario.getNombre().isEmpty() &&
-               usuario.getEmail() != null && usuario.getEmail().contains("@") &&
-               usuario.getPassword() != null && usuario.getPassword().length() >= 4;
+        if (usuario == null) return false;
+        
+        // Validar nombre
+        if (usuario.getNombre() == null || 
+            usuario.getNombre().trim().isEmpty() || 
+            usuario.getNombre().length() < 2) {
+            return false;
+        }
+        
+        // Validar email con regex
+        String emailRegex = "^[A-Za-z0-9+_.-]+@(.+)$";
+        if (usuario.getEmail() == null || 
+            !usuario.getEmail().matches(emailRegex)) {
+            return false;
+        }
+        
+        // Validar password
+        if (usuario.getPassword() == null || 
+            usuario.getPassword().length() < 6) {
+            return false;
+        }
+        
+        return true;
     }
 
     private boolean emailExiste(Connection conn, String email) throws SQLException {
-        String sql = "SELECT COUNT(*) FROM USUARIOS WHERE email = ?";
+        String sql = "SELECT COUNT(*) as count FROM USUARIOS WHERE LOWER(email) = LOWER(?)";
         try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setString(1, email);
+            pstmt.setString(1, email.trim());
             try (ResultSet rs = pstmt.executeQuery()) {
-                return rs.next() && rs.getInt(1) > 0;
+                if (rs.next()) {
+                    int count = rs.getInt("count");
+                    return count > 0;
+                }
+                return false;
             }
         }
     }
