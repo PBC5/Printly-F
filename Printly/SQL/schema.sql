@@ -5,3 +5,11 @@ CREATE TABLE usuarios (
     password VARCHAR(100) NOT NULL,
     fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE modelos (
+    id SERIAL PRIMARY KEY,
+    usuario_id INTEGER REFERENCES usuarios(id),
+    titulo VARCHAR(200) NOT NULL,
+    ruta_archivo VARCHAR(500) NOT NULL,
+    fecha_subida TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);

@@ -70,5 +70,34 @@
 
   <script type="module" src="js/api.js"></script>
   <script type="module" src="js/main.js"></script>
+  <script>
+document.getElementById('postForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData();
+    formData.append('file', document.getElementById('modelo3d').files[0]);
+    formData.append('titulo', document.getElementById('titulo').value);
+    formData.append('usuario', document.getElementById('usuario').value);
+
+    try {
+        const response = await fetch('http://localhost:8080/api/modelos/subir', {
+            method: 'POST',
+            body: formData
+        });
+
+        const data = await response.json();
+        
+        if (response.ok) {
+            alert('Modelo subido correctamente');
+            location.reload();
+        } else {
+            alert(data.error || 'Error al subir el modelo');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error al subir el modelo');
+    }
+});
+</script>
 </body>
 </html>

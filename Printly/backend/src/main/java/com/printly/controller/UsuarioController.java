@@ -23,9 +23,6 @@ public class UsuarioController {
         } catch (SQLException e) {
             return ResponseEntity.badRequest()
                 .body("{\"error\": \"" + e.getMessage() + "\"}");
-
-
-
-}    }        }        }
+        }
     }
 }
